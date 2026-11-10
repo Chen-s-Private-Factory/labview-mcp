@@ -1450,6 +1450,11 @@ is unchanged: the user's own code is never cached, whoever reads it.
   nothing else. The reader now writes every terminal of a Call; a name it could not establish
   (`?`) stays out. Primitives keep wired-only, because their unwired names come from a table with
   gaps. `compare_full.py` could not see this: it compares edges, and an unwired terminal has none.
+  **Portable regression fixture (2026-11-10):** on LabVIEW 2020, `Trim Whitespace.vi` is an
+  ordinary VI, not the polymorphic wrapper in the original measurement. The test now reads
+  `Utility\file.llb\Read Delimited Spreadsheet.vi`, whose string instance lists eight unwired
+  inputs and six unwired outputs on that installation. It still checks exact terminal names
+  and that every instance has inputs and outputs, rather than accepting an empty instance list.
 - **A `:` or `,` in a control's name went out raw**, where NI writes `\3A` and `\2C` - counted 85 of
   85 and 23 of 23 over 869 cached exports. JKI's `attribute? (F: entity)` reached
   `lvai_vi_terminals` as a name no `inputs=` string can carry, `:` being its separator.
@@ -1582,6 +1587,15 @@ worse - except the two LabVIEW 9.0 VIs whose DEFAULT constants (`0`, `false`) we
 accident before and are now reported undecoded with the rest. `ReaderShiftRegisterAndConstantTests`
 pins one case of each against NI's export, every assertion checked to fail on the old reader's
 output.
+
+**Regression fixture correction (2026-11-10).** The test previously assumed an installed
+`Dictionary Example.vi` was still the LabVIEW 9.0 file from the original survey. On another
+station its `vers` resource says 20.0 and constant 2242 carries `ConstValue=00000064`; reading
+`100` is correct, not a regression. The missing-value test now extracts the repository-owned,
+LabVIEW-saved `Disable Frame0 Enabled.vi` and removes only constant 4220's `ConstValue` in a
+scratch heap. The paired cases require `1` when present, an empty value plus the named warning
+when absent, and the untouched second constant to remain `2`. This covers both branches without
+requiring a particular toolkit installation or modifying an installed VI.
 
 ## Diagram comments on the reader (2026-10-21)
 

@@ -202,12 +202,12 @@ public class ExternalExampleIndexTests
     // ---------- the real files, when this machine has them ----------
 
     /// <summary>
-    /// Decoded against all 18 index files on this station. The pairing is only safe because every
-    /// name equals the last component of its path and every path resolves to a file that exists;
-    /// this re-checks both wherever the station actually has such a file.
+    /// The parser pairs registrations, not installed files. Driver indexes may include optional
+    /// examples that were not installed; ExampleIndex filters those, covered by ExampleToolsTests.
+    /// Check the real index format without requiring every optional driver component.
     /// </summary>
     [Fact]
-    public void RealIndexFilesParseAndTheirPathsResolve()
+    public void RealIndexFilesParseWithoutRequiringEveryOptionalExampleToBeInstalled()
     {
         var roots = new[]
         {
@@ -227,50 +227,18 @@ public class ExternalExampleIndexTests
             if (examples.Count == 0) continue;        // an unknown variant is allowed, not fatal
             read++;
 
-            // exbins sits directly inside the examples folder these paths are relative to - but the
-            // index itself may sit deeper: CompactRIO ships exbins\english\lv985x.bin4.
-            var examplesFolder = ExamplesFolderOf(file);
             // An exbins index registers .vi AND .lvproj - 528 and 37 across this station.
             Assert.All(examples, e =>
             {
                 Assert.True(e.RelativePath.EndsWith(".vi", StringComparison.OrdinalIgnoreCase) ||
                             e.RelativePath.EndsWith(".lvproj", StringComparison.OrdinalIgnoreCase),
                             $"unexpected registration: {e.RelativePath}");
-                Assert.True(ExistsOnDisk(examplesFolder, e.RelativePath),
-                            $"registered but absent: {e.RelativePath}");
+                Assert.False(Path.IsPathRooted(e.RelativePath), $"not relative: {e.RelativePath}");
+                Assert.DoesNotContain("..", e.RelativePath.Split('\\'));
+                Assert.False(string.IsNullOrWhiteSpace(Path.GetFileName(e.RelativePath)));
             });
         }
         Assert.True(read > 0, "no exbins index parsed on a station that has LVAddons");
     }
 
-    /// <summary>The folder holding the index's <c>exbins</c> ancestor; its own folder's parent if none.</summary>
-    private static string ExamplesFolderOf(string indexFile)
-    {
-        for (var dir = Path.GetDirectoryName(indexFile); dir != null; dir = Path.GetDirectoryName(dir))
-        {
-            if (string.Equals(Path.GetFileName(dir), "exbins", StringComparison.OrdinalIgnoreCase))
-                return Path.GetDirectoryName(dir)!;
-        }
-        return Path.GetDirectoryName(Path.GetDirectoryName(indexFile))!;
-    }
-
-    /// <summary>
-    /// An index may register a VI INSIDE an <c>.llb</c> - NI-XNET lists about 130 examples as
-    /// <c>nixnet\examples.llb\&lt;name&gt;.vi</c>. The <c>.llb</c> is one file, so File.Exists is
-    /// false for every member while the example is installed. Such a path counts as present when
-    /// the <c>.llb</c> itself exists; a missing file outside a library still fails.
-    /// </summary>
-    private static bool ExistsOnDisk(string examplesFolder, string relativePath)
-    {
-        var full = Path.Combine(examplesFolder, relativePath);
-        if (System.IO.File.Exists(full)) return true;
-        for (var dir = Path.GetDirectoryName(full);
-             dir != null && dir.Length > examplesFolder.Length;
-             dir = Path.GetDirectoryName(dir))
-        {
-            if (dir.EndsWith(".llb", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(dir))
-                return true;
-        }
-        return false;
-    }
 }

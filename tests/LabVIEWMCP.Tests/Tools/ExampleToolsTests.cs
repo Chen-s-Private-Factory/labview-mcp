@@ -42,35 +42,48 @@ public class ExampleToolsTests : IDisposable
     }
 
     /// <summary>
-    /// A minimal exbins index registering one example: the five parallel arrays the reader needs,
+    /// A minimal exbins index: the five parallel arrays the reader needs,
     /// in the order the real files use. See <see cref="LabVIEWMcp.Infra.ExternalExampleIndex"/>.
     /// </summary>
-    private static byte[] ExbinsFile(string relativePath, string description)
+    private static byte[] ExbinsFile(string relativePath, string description) =>
+        ExbinsFile([(relativePath, description)]);
+
+    private static byte[] ExbinsFile(params (string Path, string Description)[] entries)
     {
-        var name = relativePath[(relativePath.LastIndexOf('\\') + 1)..];
         var bytes = new List<byte>();
 
         void U32(int value) => bytes.AddRange(
             [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value]);
-        void Text(string s) { U32(1); U32(s.Length); bytes.AddRange(Encoding.ASCII.GetBytes(s)); }
-
-        Text(name);                                                     // 0 names
-
-        var parts = relativePath.Split('\\');                           // 1 PTH0 paths
-        var body = new List<byte> { 0x00, 0x01, 0x00, (byte)parts.Length };
-        foreach (var part in parts)
+        void Text(IEnumerable<string> strings)
         {
-            body.Add((byte)part.Length);
-            body.AddRange(Encoding.ASCII.GetBytes(part));
+            U32(entries.Length);
+            foreach (var text in strings)
+            {
+                var payload = Encoding.ASCII.GetBytes(text);
+                U32(payload.Length);
+                bytes.AddRange(payload);
+            }
         }
-        U32(1);
-        bytes.AddRange("PTH0"u8.ToArray());
-        U32(body.Count);
-        bytes.AddRange(body);
 
-        Text("");                                                       // 2 empty
-        U32(1); U32(1); U32(1088);                                      // 3 navigation ids
-        Text(description);                                              // 4 descriptions
+        Text(entries.Select(e => e.Path[(e.Path.LastIndexOf('\\') + 1)..])); // 0 names
+        U32(entries.Length);                                              // 1 PTH0 paths
+        foreach (var entry in entries)
+        {
+            var parts = entry.Path.Split('\\');
+            var body = new List<byte> { 0x00, 0x01, 0x00, (byte)parts.Length };
+            foreach (var part in parts)
+            {
+                body.Add((byte)part.Length);
+                body.AddRange(Encoding.ASCII.GetBytes(part));
+            }
+            bytes.AddRange("PTH0"u8.ToArray());
+            U32(body.Count);
+            bytes.AddRange(body);
+        }
+        Text(entries.Select(_ => ""));                                    // 2 empty
+        U32(entries.Length);                                              // 3 navigation ids
+        foreach (var _ in entries) { U32(1); U32(1088); }
+        Text(entries.Select(e => e.Description));                          // 4 descriptions
         return [.. bytes];
     }
 
@@ -338,6 +351,31 @@ public class ExampleToolsTests : IDisposable
 
         Assert.StartsWith("Creates scaling information", example.Description);
         Assert.Equal("LabVIEW >= 13.0", example.RequiredSoftware);
+    }
+
+    [Fact]
+    public void Missing_optional_registrations_do_not_hide_installed_examples_or_create_dead_links()
+    {
+        const string installed = @"DAQmx\Analog Input\Voltage - Finite Input.vi";
+        const string missing =
+            @"CompactRIO\Chassis Specific\sbRIO-96x8 Onboard Analog Input\sbRIO-96x8 Onboard Analog Input.lvproj";
+        WriteExample(installed, block: null);
+        var exbins = Path.Combine(_root, "examples", "exbins", "english");
+        Directory.CreateDirectory(exbins);
+        var bytes = ExbinsFile(
+            (installed, "Acquires a finite amount of voltage data."),
+            (missing, "Requires optional CompactRIO examples."));
+        File.WriteAllBytes(Path.Combine(exbins, "partial.bin4"), bytes);
+
+        Assert.Equal(2, ExternalExampleIndex.Read(bytes).Count);
+        var index = ExampleIndex.Build(_root, refresh: true);
+
+        var example = Assert.Single(index.Examples);
+        Assert.Equal(Path.Combine(_root, "examples", installed), example.Path);
+        Assert.Equal("Acquires a finite amount of voltage data.", example.Description);
+        Assert.Equal(1, index.FromExternalIndexes);
+        Assert.Empty(index.ExternalIndexes);
+        Assert.All(index.Examples, e => Assert.True(File.Exists(e.Path)));
     }
 
     // ---------- query words ----------

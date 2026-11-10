@@ -16,6 +16,8 @@ namespace LabVIEWMcp.Tests.Infra;
 ///    can carry.
 ///
 /// Both read real installed VIs and SKIP where they or the bundled interpreter are missing.
+/// Read Delimited Spreadsheet is polymorphic on older installations too; Trim Whitespace is
+/// an ordinary VI on LabVIEW 2020 and cannot serve as a polymorphic fixture there.
 /// </summary>
 public sealed class PylabviewReaderPolymorphicTests
 {
@@ -51,14 +53,18 @@ public sealed class PylabviewReaderPolymorphicTests
     public async Task A_polymorphic_VI_s_instances_carry_their_terminals_as_NI_writes_them()
     {
         if (AixmlComposer.Locate(out _) is null ||
-            Installed("vi.lib", "Utility", "error.llb", "Trim Whitespace.vi") is not { } vi) return;
+            Installed("vi.lib", "Utility", "file.llb", "Read Delimited Spreadsheet.vi") is not { } vi) return;
 
         var parsed = await ReadFreshAsync(vi);
 
-        var instance = Assert.Single(parsed.Instances, i => i.Name == "Trim Whitespace (string).vi");
-        Assert.Equal("string:,location (both):", instance.Inputs);
-        Assert.Equal("trimmed string:", instance.Outputs);
+        var instance = Assert.Single(parsed.Instances, i => i.Name == "Read Delimited Spreadsheet (string).vi");
+        Assert.Equal(@"file path (dialog if empty):,format (%s):,number of rows (all\3A-1):," +
+                     @"start of read offset (chars.\3A0):,max characters/row  (no limit\3A0):," +
+                     @"error in (no error):,transpose? (F):,delimiter (\5Ct):", instance.Inputs);
+        Assert.Equal("new file path (Not A Path if cancelled):,all rows:,first row:," +
+                     "mark after read (chars.):,EOF?:,error out:", instance.Outputs);
         Assert.All(parsed.Instances, i => Assert.False(string.IsNullOrEmpty(i.Inputs), i.Name));
+        Assert.All(parsed.Instances, i => Assert.False(string.IsNullOrEmpty(i.Outputs), i.Name));
     }
 
     /// <summary>

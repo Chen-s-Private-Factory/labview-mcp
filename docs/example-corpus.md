@@ -172,11 +172,19 @@ prefix.
 
 ### Why the pairing is safe
 
-Index alignment is a measurement, not an assumption. Across all 23 files: every name equals the
+Index alignment is a measurement, not an assumption. On the original survey station, across all 23 files: every name equals the
 last component of its path, all 565 registrations resolve to a file that exists on disk, and the
 descriptions match their example's subject. `ExternalExampleIndex` re-checks the name-against-path
 rule at run time and **returns nothing at all** for a file that fails it — a mis-paired description
 is worse than a missing one. Such a file is then named in the tool's output.
+
+**Installation completeness is separate (2026-11-10).** The earlier test promoted the survey's
+"all registrations exist" result into a requirement for every machine. A CompactRIO index on
+another station parses 76 registrations correctly while four optional sbRIO-96x8 example
+projects are absent. An absent optional file is not a malformed index. The real-index test now
+checks the registration format; a deterministic mixed installed/missing index test checks that
+`ExampleIndex.Build` keeps the installed example and filters the absent project without
+misreporting the whole index as unreadable. No installed examples or driver files are changed.
 
 Of the 565 registrations only 143 are new: the rest duplicate examples that already carry an in-VI
 block. Where both describe one example the block wins — it is authoritative and the only source

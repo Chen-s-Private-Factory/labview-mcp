@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using LabVIEWMcp.Infra;
+using LabVIEWMcp.Tests.Support;
 using Xunit;
 
 namespace LabVIEWMcp.Tests.Infra;
@@ -16,8 +17,9 @@ namespace LabVIEWMcp.Tests.Infra;
 ///   writes the station's Windows-1252, and NaN/Inf were spelt `NaN`/`Inf` where NI writes
 ///   `nan`/`-nan`/`inf`.
 ///
-/// Each expected value is NI's own export of the same installed VI, taken over grpc. The tests read
-/// real installed VIs and SKIP where they or the bundled interpreter are missing.
+/// Installed-VI expectations come from NI's export. Missing-value coverage uses a repository-owned,
+/// LabVIEW-saved fixture with its ConstValue removed from a scratch heap, not an installed OpenG
+/// example whose saved format can change. No LabVIEW process is needed.
 /// </summary>
 public sealed class ReaderShiftRegisterAndConstantTests
 {
@@ -96,15 +98,45 @@ public sealed class ReaderShiftRegisterAndConstantTests
             Assert.Equal("-nan", (string?)Uid(pid, "Constant", "740").Attribute("value"));
     }
 
-    [Fact]
-    public async Task A_LabVIEW_9_constant_is_reported_undecoded_rather_than_read_as_a_default()
+    [Theory]
+    [InlineData(true, "1")]
+    [InlineData(false, "")]
+    public async Task A_constant_uses_its_heap_value_or_reports_it_missing_without_inventing_a_default(
+        bool hasHeapValue, string expected)
     {
-        if (await ReadAsync("examples", "OpenG", "dictionary", "Dictionary Example.vi") is not { } vi) return;
+        if (AixmlComposer.Locate(out _) is not { } setup) return;
+        var fixture = RepoTree.Path("tests", "LabVIEWMCP.Tests", "Fixtures", "reader", "disable",
+            "Disable Frame0 Enabled.vi");
+        var directory = Directory.CreateTempSubdirectory("reader-constant-").FullName;
+        try
+        {
+            var main = Path.Combine(directory, "constant.xml");
+            var extract = await PyLabview.RunAsync(setup.Bundle, setup.Bundle.ReadRsrcPy,
+                ["-x", "-i", fixture, "-m", main], 120, default);
+            Assert.True(extract.ExitCode == 0, extract.StdErr + extract.StdOut);
+            var heapFile = (string?)XElement.Load(main).Element("BDHb")?.Element("Section")?.Attribute("File");
+            Assert.NotNull(heapFile);
+            var heapPath = Path.Combine(directory, heapFile);
+            var heap = XElement.Load(heapPath);
+            var dco = Assert.Single(heap.Descendants("dco"),
+                e => (string?)e.Element("ddo")?.Attribute("uid") == "4220");
+            var value = dco.Element("ConstValue");
+            Assert.NotNull(value);
+            if (!hasHeapValue)
+            {
+                value.Remove();
+                heap.Save(heapPath);
+            }
 
-        // NI: int32 100. The value is not in a LabVIEW 9.0 file's diagram heap at all.
-        Assert.Equal("", (string?)Uid(vi, "Constant", "2242").Attribute("value"));
-        Assert.Contains(vi.Nodes().OfType<XComment>(),
-            c => c.Value.Contains("constant 2242: value not stored in the block diagram heap"));
-        Assert.DoesNotContain(vi.Descendants("Constant"), c => (string?)c.Attribute("value") is "0" or "false");
+            var output = Path.Combine(directory, "read.xml");
+            var read = await AixmlComposer.ReadAsync(setup, main, output, 120, default);
+            Assert.True(read.Written, read.Message);
+            var vi = XElement.Load(output);
+            Assert.Equal(expected, (string?)Uid(vi, "Constant", "4220").Attribute("value"));
+            Assert.Equal(!hasHeapValue, vi.Nodes().OfType<XComment>().Any(
+                c => c.Value.Contains("constant 4220: value not stored in the block diagram heap")));
+            Assert.Equal("2", (string?)Uid(vi, "Constant", "4230").Attribute("value"));
+        }
+        finally { Directory.Delete(directory, recursive: true); }
     }
 }
