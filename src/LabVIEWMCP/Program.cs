@@ -17,6 +17,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 // would garble it. UTF-8 out, whichever mode runs; stdio MCP carries UTF-8 anyway.
 try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch (IOException) { }
 
+if (ToolRouter.IsRequested(args))
+    return await ToolRouter.RunAsync(args);
+
 if (CommandLine.HasFlag(args, "--help") ||
     CommandLine.HasFlag(args, "-h") ||
     CommandLine.HasFlag(args, "-?"))

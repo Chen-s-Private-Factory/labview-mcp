@@ -22,6 +22,7 @@ scripts run. Renaming one of them is a refactor across four call sites.
 | | |
 |---|---|
 | [`guide/install.md`](guide/install.md) | every install route: plugin, manual, Codex, Copilot, Cursor, binary-only |
+| [`guide/skill-cli.md`](guide/skill-cli.md) | CLI-only Skill installation and direct C# tool routing, without an MCP server |
 | [`guide/safety.md`](guide/safety.md) | what the writing tools destroy, and the one edit that killed `LabVIEW.exe` |
 | [`guide/tools.md`](guide/tools.md) | every tool, and which of them are safe to allow-list |
 | [`guide/aixml-workflow.md`](guide/aixml-workflow.md) | generating and editing a VI, end to end |

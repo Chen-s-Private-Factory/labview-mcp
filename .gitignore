@@ -90,6 +90,9 @@ __pycache__/
 /staging/
 /publish/
 /labview-mcp.zip
+/skill-staging/
+/labview-skill.zip
+/labview-skill.sha256
 
 # The self-contained pylabview runtime (tools\pylabview\provision.ps1, about 32 MB: interpreter,
 # trimmed stdlib, Pillow) IS committed, so a fresh clone's build carries pylabview beside the exe

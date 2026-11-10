@@ -4,6 +4,9 @@ The two-command plugin install is in the [README](../../README.md#quickstart). T
 every other route: the plugin in detail, manual registration with Claude Code, and any other MCP
 client.
 
+For the fork's Skill interface without MCP registration or startup, use
+[skill-cli.md](skill-cli.md) instead of the MCP installation steps below.
+
 **Contents**
 
 - [Install as a Claude Code plugin](#install-as-a-claude-code-plugin)
@@ -405,4 +408,3 @@ allow-list the **same 18 passive tools** the plugin's hook allows — the exact 
 [section 6](#6-let-the-read-only-tools-run-without-asking). Keep everything else behind a prompt,
 and never allow-list the whole server. Client MCP support and config-file paths change often — if a
 key name here has moved, check your tool's own MCP documentation.
-

@@ -18,6 +18,10 @@ internal static class CommandLine
         ["-h"] = false,
         ["-?"] = false,
         ["--version"] = false,
+        ["--list-tools"] = false,
+        ["--describe-tool"] = true,
+        ["--invoke"] = true,
+        ["--args-file"] = true,
         ["--selftest"] = false,
         ["--ensure-labview"] = false,
         ["--dump-schema"] = true, // the file is optional; the value test below handles that
@@ -66,6 +70,12 @@ internal static class CommandLine
         LabVIEW MCP - exposes LabVIEW's private lvai.LVAI gRPC interface as MCP tools.
 
           LabVIEWMCP                        run as an MCP server over stdio (default)
+          LabVIEWMCP --list-tools           list every tool and its JSON schema, without MCP
+          LabVIEWMCP --describe-tool <name>  describe one tool, without MCP or LabVIEW startup
+          LabVIEWMCP --invoke <name> --args-file <file.json>
+                                            invoke the C# tool directly, print JSON and exit;
+                                            --timeout is the whole-call budget (default 300 s);
+                                            --out also writes the answer as UTF-8 JSON
           LabVIEWMCP --selftest             probe every read-only RPC and print a verdict table
           LabVIEWMCP --dump-schema [file]   print/write the schema the running LabVIEW serves
           LabVIEWMCP --watch <monitor>      wait for inbound LabVIEW events, minutes at a time

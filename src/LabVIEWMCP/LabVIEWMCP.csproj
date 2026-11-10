@@ -126,6 +126,11 @@
          machine needs, and it was the largest single unshipped document at 63 kB. -->
     <None Include="..\..\README.md" Link="README.md"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\LICENSE" Link="LICENSE"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\.github\skills\labview\**\*"
+          Link="skill\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- The self-contained pylabview bundle, so a binary-only install can read and rebuild VI files

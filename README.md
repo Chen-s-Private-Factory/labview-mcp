@@ -228,6 +228,12 @@ load. Worth ten minutes before the first write.
 
 ## Quickstart
 
+**Need a Skill without an MCP server?** This fork also supports a
+[CLI-only Skill](docs/guide/skill-cli.md), with all tools discovered from the
+same C# definitions. Use `--list-tools`, `--describe-tool` or `--invoke` through
+the guarded Skill launcher. This route does not register or start MCP; the
+original MCP installation below remains unchanged.
+
 **You need:** Windows x64, an MCP-capable AI client, and **LabVIEW 2020 or newer** (tested back
 to LabVIEW 2020). On LabVIEW 2026 Q3 the server can also use NI's own gRPC service; on older versions it works
 through the bundled pylabview engine and LabVIEW's ActiveX server instead, and picks that by itself.
