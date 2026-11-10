@@ -183,6 +183,8 @@ public class PublishedReleaseTests : IDisposable
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        // A pwsh-hosted gate can otherwise make Windows PowerShell load Core's module manifests.
+        psi.Environment.Remove("PSModulePath");
         psi.ArgumentList.Add("-NoProfile");
         psi.ArgumentList.Add("-ExecutionPolicy");
         psi.ArgumentList.Add("Bypass");

@@ -34,6 +34,19 @@ installed server on the same machine then answered `1059`.
 > need exclusive access to the TestStand COM engine; here the reason is the file lock on the
 > single build artifact. Same mechanism, different cause.
 
+## PowerShell edition matters for child processes
+
+Measured 2026-11-10: the full gate passed when started with Windows PowerShell, but a normal
+`git push` failed ten `PublishedReleaseTests`. The hook prefers `pwsh`, and the test runner
+passed its Core `PSModulePath` on to the tests' `powershell.exe` children. Those children found
+Core module manifests first and could not load `Get-FileHash`, so archive verification failed
+before reaching the assertions it was meant to check.
+
+`PublishedReleaseTests.Run` now removes `PSModulePath` from that child's environment, letting
+Windows PowerShell establish its own built-in module paths. This does not change the hook's
+shell preference or skip release checks. Verify cross-edition launchers from both parent
+editions, and verify a push with the real hook, not only a manually launched gate.
+
 ## Which working tree it tests
 
 **It asks git, not itself.** The gate resolves the tree under test with
